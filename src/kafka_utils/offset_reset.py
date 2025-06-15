@@ -1,8 +1,7 @@
 # src/kafka_utils/offset_reset.py
 
 import logging
-from collections import defaultdict
-from confluent_kafka import TopicPartition
+from confluent_kafka import TopicPartition, Consumer
 from confluent_kafka.admin import AdminClient
 
 
@@ -27,7 +26,7 @@ def reset_offsets(
     partitions: list[int] = None
 ):
     """
-    Reset consumer group offsets to 'earliest' (offset 0) or 'latest' (offset -1)
+    Reset consumer group offsets to 'earliest' or 'latest' by committing specified offsets
     for the specified topic and partitions.
 
     Parameters:
@@ -47,25 +46,23 @@ def reset_offsets(
     else:
         target_partitions = all_partitions
 
-    target_offset = 0 if reset_to == "earliest" else -1
-
-    # ✅ Correct nested dictionary format required by the Admin API
-    offsets_map = defaultdict(dict)
+    # Reset offsets by committing specific offsets via a temporary consumer
+    consumer_conf = {
+        "bootstrap.servers": bootstrap_servers,
+        "group.id": group_id,
+        "enable.auto.commit": False
+    }
+    consumer = Consumer(consumer_conf)
+    offsets_to_commit = []
     for tp in target_partitions:
-        offsets_map[tp.topic][tp.partition] = target_offset
-
-    logging.info(f"🔁 Setting offsets to '{reset_to}' for group '{group_id}' on topic '{topic}'")
-
-    # ✅ Use keyword arguments (not positional)
-    future_map = admin.alter_consumer_group_offsets(
-        group_id=group_id,
-        offsets=offsets_map
-    )
-
-    for topic_name, partition_futures in future_map.items():
-        for partition, fut in partition_futures.items():
-            try:
-                fut.result()
-                logging.info(f"✅ Offset set to {target_offset} for {topic_name}[{partition}]")
-            except Exception as e:
-                logging.warning(f"⚠️ Failed to set offset for {topic_name}[{partition}]: {e}")
+        low, high = consumer.get_watermark_offsets(TopicPartition(tp.topic, tp.partition), timeout=10)
+        desired_offset = low if reset_to == "earliest" else high
+        logging.info(f"🔁 Partition {tp.partition}: resetting offset to {desired_offset}")
+        offsets_to_commit.append(TopicPartition(tp.topic, tp.partition, desired_offset))
+    try:
+        consumer.commit(offsets=offsets_to_commit, asynchronous=False)
+        logging.info(f"✅ Offsets for group '{group_id}' on topic '{topic}' successfully reset")
+    except Exception as e:
+        logging.warning(f"⚠️ Failed to commit offsets: {e}")
+    finally:
+        consumer.close()

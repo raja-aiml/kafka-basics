@@ -26,6 +26,7 @@ import json
 import logging
 import signal
 from confluent_kafka import DeserializingConsumer, TopicPartition
+from confluent_kafka.error import ValueDeserializationError
 from confluent_kafka.admin import AdminClient
 from service.order_processor import KafkaOrderProcessor
 from kafka_utils.offset_reset import reset_offsets
@@ -94,7 +95,11 @@ def consume(group_id, dry_run, do_reset, persist_path, filter_user, show_summary
     stats = {"total": 0, "processed": 0, "skipped": 0}
 
     while running:
-        msg = consumer.poll(1.0)
+        try:
+            msg = consumer.poll(1.0)
+        except ValueDeserializationError as e:
+            logging.error(f"❌ Deserialization error: {e}, skipping message.")
+            continue
         handle_message(msg, processor, dry_run, persist_path, filter_user, stats)
 
     consumer.close()
