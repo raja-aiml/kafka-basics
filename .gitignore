@@ -12,3 +12,7 @@ wheels/
 # Coverage
 .coverage
 .pytest_cache/
+
+# Ruff cache
+.ruff_cache
+
