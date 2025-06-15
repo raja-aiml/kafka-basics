@@ -1,5 +1,6 @@
 import csv
 
+
 class UserStore:
     def __init__(self, path="storage/users.csv"):
         self.path = path

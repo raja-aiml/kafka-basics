@@ -7,11 +7,13 @@ import os
 FILE = "storage/inventory.csv"
 FIELDS = ["item", "quantity"]
 
+
 def load_inventory():
     if not os.path.exists(FILE):
         return []
     with open(FILE) as f:
         return list(csv.DictReader(f))
+
 
 def save_inventory(rows):
     with open(FILE, "w", newline="") as f:
@@ -19,11 +21,13 @@ def save_inventory(rows):
         writer.writeheader()
         writer.writerows(rows)
 
+
 def show_inventory():
     rows = load_inventory()
     print("📦 Inventory:")
     for row in rows:
         print(f"• {row['item']} → {row['quantity']}")
+
 
 def add_item(item, quantity):
     rows = load_inventory()
@@ -33,6 +37,7 @@ def add_item(item, quantity):
     rows.append({"item": item, "quantity": str(quantity)})
     save_inventory(rows)
     print(f"✅ Added item '{item}' with quantity {quantity}")
+
 
 def update_item(item, quantity):
     rows = load_inventory()
@@ -46,6 +51,7 @@ def update_item(item, quantity):
         return
     save_inventory(rows)
     print(f"✅ Updated item '{item}' to quantity {quantity}")
+
 
 def main():
     parser = argparse.ArgumentParser(description="Manage inventory.csv")
@@ -71,6 +77,7 @@ def main():
         update_item(args.item, args.quantity)
     else:
         parser.print_help()
+
 
 if __name__ == "__main__":
     main()

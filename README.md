@@ -16,7 +16,7 @@ The system follows a classic event streaming pattern where a producer sends orde
                  ▼
 +-----------------------------------+
 |        Python Producer            | ━(sends Avro-encoded events)━▶ [ Kafka Topic: "orders" ]
-| (src/producer.py)                 |                                         |
+| (src/prodcuer.py)                 |                                         |
 +-----------------------------------+                                         |
                                                                               ▼
                                                        +-----------------------------------+
@@ -38,7 +38,7 @@ Follow these steps to set up and run the entire system on your local machine.
 ### Prerequisites
 
 * **Docker & Docker Compose**: Required to run the Confluent Platform stack.
-* **Python 3.9+**: Required for the producer, consumer, and CLI tools.
+* **Python 3.12+**: Required for the producer, consumer, and CLI tools.
 * **Poetry or UV**: For managing Python dependencies (as defined in `pyproject.toml`).
 
 ### Setup and Execution
@@ -84,7 +84,7 @@ This script generates sample orders and sends them to the `orders` Kafka topic.
 
 ```bash
 # Send 5 sample orders with a 1-second delay between each
-python src/producer.py --count 5 --delay 1
+python src/prodcuer.py --count 5 --delay 1
 ```
 
 **Start the Consumer (in another terminal):**
@@ -92,6 +92,19 @@ This script listens for new messages on the `orders` topic, processes them, and 
 
 ```bash
 python src/consumer.py
+```
+You can reset consumer offsets on startup using `--reset` and optionally
+`--partitions` and `--reset-to`:
+
+```bash
+python src/consumer.py consume --reset --reset-to latest
+```
+
+**Replay Processed Orders (optional):**
+Use `src/replay.py` to resend orders from `storage/orders.jsonl` back into Kafka.
+
+```bash
+python src/replay.py --delay 0.5
 ```
 
 ---
@@ -133,10 +146,18 @@ The project includes simple command-line tools to manage the user and inventory 
 kafka-basics/
 ├── src/                      # Python source code
 │   ├── consumer.py           # Kafka consumer with business logic
-│   ├── producer.py           # Kafka producer to generate order events
-│   └── tool/                 # CLI tools
-│       ├── inventory.py      # Manages inventory.csv
-│       └── user.py           # Manages users.csv
+│   ├── prodcuer.py           # Kafka producer to generate sample orders
+│   ├── replay.py             # Utility to replay processed orders
+│   ├── service/
+│   │   └── order_processor.py
+│   ├── data/
+│   │   ├── inventory.py
+│   │   └── users.py
+│   ├── kafka_utils/
+│   │   └── offset_reset.py
+│   └── tool/
+│       ├── inventory.py
+│       └── user.py
 ├── storage/                  # Data files (mutable state)
 │   ├── users.csv             # User data and payment status
 │   ├── inventory.csv         # Item inventory and quantities

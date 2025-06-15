@@ -2,6 +2,7 @@ from data.inventory import InventoryStore
 from data.users import UserStore
 import logging
 
+
 class KafkaOrderProcessor:
     def __init__(self):
         self.inventory = InventoryStore()
