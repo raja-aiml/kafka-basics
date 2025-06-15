@@ -1,5 +1,6 @@
 import csv
 
+
 class InventoryStore:
     def __init__(self, path="storage/inventory.csv"):
         self.path = path

@@ -39,6 +39,7 @@ import config
 
 OUTPUT_FILE = "storage/orders.jsonl"
 
+
 def load_orders(user=None, item=None, status=None):
     with open(OUTPUT_FILE) as f:
         for line in f:
@@ -51,18 +52,23 @@ def load_orders(user=None, item=None, status=None):
                 continue
             yield order
 
+
 def create_producer():
-    return SerializingProducer({
-        "bootstrap.servers": config.BOOTSTRAP_SERVERS,
-        "key.serializer": config.get_key_serializer(),
-        "value.serializer": config.get_value_serializer(),
-    })
+    return SerializingProducer(
+        {
+            "bootstrap.servers": config.BOOTSTRAP_SERVERS,
+            "key.serializer": config.get_key_serializer(),
+            "value.serializer": config.get_value_serializer(),
+        }
+    )
+
 
 def delivery_report(err, msg):
     if err:
         logging.error(f"❌ Delivery failed for {msg.key()}: {err}")
     else:
         logging.info(f"✅ Replayed {msg.key()} @ offset {msg.offset()}")
+
 
 def replay_orders(delay, user, item, status):
     producer = create_producer()
@@ -78,16 +84,22 @@ def replay_orders(delay, user, item, status):
         time.sleep(delay)
     producer.flush()
 
+
 def main():
     parser = argparse.ArgumentParser(description="Replay orders from orders.jsonl")
-    parser.add_argument("--delay", type=float, default=0.5, help="Delay between messages (seconds)")
+    parser.add_argument(
+        "--delay", type=float, default=0.5, help="Delay between messages (seconds)"
+    )
     parser.add_argument("--user", type=str, help="Replay only orders for this user")
     parser.add_argument("--item", type=str, help="Replay only orders for this item")
-    parser.add_argument("--status", type=str, help="Replay only orders with this status")
+    parser.add_argument(
+        "--status", type=str, help="Replay only orders with this status"
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO)
     replay_orders(args.delay, args.user, args.item, args.status)
+
 
 if __name__ == "__main__":
     main()

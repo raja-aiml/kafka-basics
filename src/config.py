@@ -23,14 +23,20 @@ value_schema_str = """{
 schema_registry_conf = {"url": SCHEMA_REGISTRY_URL}
 schema_registry_client = SchemaRegistryClient(schema_registry_conf)
 
+
 def get_value_serializer():
-    return AvroSerializer(schema_registry_client=schema_registry_client, schema_str=value_schema_str)
+    return AvroSerializer(
+        schema_registry_client=schema_registry_client, schema_str=value_schema_str
+    )
+
 
 def get_key_serializer():
     return StringSerializer("utf_8")
 
+
 def get_value_deserializer():
     return AvroDeserializer(schema_registry_client=schema_registry_client)
+
 
 def get_key_deserializer():
     return StringDeserializer("utf_8")

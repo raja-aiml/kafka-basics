@@ -7,11 +7,13 @@ import os
 FILE = "storage/users.csv"
 FIELDS = ["user", "status"]
 
+
 def load_users():
     if not os.path.exists(FILE):
         return []
     with open(FILE) as f:
         return list(csv.DictReader(f))
+
 
 def save_users(rows):
     with open(FILE, "w", newline="") as f:
@@ -19,11 +21,13 @@ def save_users(rows):
         writer.writeheader()
         writer.writerows(rows)
 
+
 def show_users():
     rows = load_users()
     print("👥 Users:")
     for row in rows:
         print(f"• {row['user']} → {row['status']}")
+
 
 def add_user(user, status):
     rows = load_users()
@@ -33,6 +37,7 @@ def add_user(user, status):
     rows.append({"user": user, "status": status})
     save_users(rows)
     print(f"✅ Added user '{user}' with status '{status}'")
+
 
 def update_user(user, status):
     rows = load_users()
@@ -46,6 +51,7 @@ def update_user(user, status):
         return
     save_users(rows)
     print(f"✅ Updated user '{user}' to status '{status}'")
+
 
 def main():
     parser = argparse.ArgumentParser(description="Manage users.csv")
@@ -71,6 +77,7 @@ def main():
         update_user(args.user, args.status)
     else:
         parser.print_help()
+
 
 if __name__ == "__main__":
     main()

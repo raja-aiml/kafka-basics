@@ -25,9 +25,8 @@ import argparse
 import json
 import logging
 import signal
-from confluent_kafka import DeserializingConsumer, TopicPartition
+from confluent_kafka import DeserializingConsumer
 from confluent_kafka.error import ValueDeserializationError
-from confluent_kafka.admin import AdminClient
 from service.order_processor import KafkaOrderProcessor
 from kafka_utils.offset_reset import reset_offsets
 import config
@@ -42,14 +41,16 @@ def signal_handler(sig, frame):
 
 
 def create_consumer(group_id):
-    return DeserializingConsumer({
-        "bootstrap.servers": config.BOOTSTRAP_SERVERS,
-        "group.id": group_id,
-        "auto.offset.reset": "earliest",
-        "enable.auto.commit": True,
-        "key.deserializer": config.get_key_deserializer(),
-        "value.deserializer": config.get_value_deserializer(),
-    })
+    return DeserializingConsumer(
+        {
+            "bootstrap.servers": config.BOOTSTRAP_SERVERS,
+            "group.id": group_id,
+            "auto.offset.reset": "earliest",
+            "enable.auto.commit": True,
+            "key.deserializer": config.get_key_deserializer(),
+            "value.deserializer": config.get_value_deserializer(),
+        }
+    )
 
 
 def handle_message(msg, processor, dry_run, persist_path, filter_user, stats):
@@ -74,15 +75,28 @@ def handle_message(msg, processor, dry_run, persist_path, filter_user, stats):
         stats["skipped"] += 1
 
 
-def consume(group_id, dry_run, do_reset, persist_path, filter_user, show_summary, reset_to, partition_str):
+def consume(
+    group_id,
+    dry_run,
+    do_reset,
+    persist_path,
+    filter_user,
+    show_summary,
+    reset_to,
+    partition_str,
+):
     if do_reset:
-        partitions = [int(p.strip()) for p in partition_str.split(",")] if partition_str else None
+        partitions = (
+            [int(p.strip()) for p in partition_str.split(",")]
+            if partition_str
+            else None
+        )
         reset_offsets(
             group_id=group_id,
             topic=config.TOPIC,
             bootstrap_servers=config.BOOTSTRAP_SERVERS,
             reset_to=reset_to,
-            partitions=partitions
+            partitions=partitions,
         )
 
     processor = KafkaOrderProcessor()
@@ -116,14 +130,35 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
 
     consume_parser = subparsers.add_parser("consume", help="Start consuming orders")
-    consume_parser.add_argument("--group", default=config.GROUP_ID, help="Kafka consumer group ID")
-    consume_parser.add_argument("--dry-run", action="store_true", help="Don't write to file")
-    consume_parser.add_argument("--reset", action="store_true", help="Reset offsets before consuming")
-    consume_parser.add_argument("--reset-to", choices=["earliest", "latest"], default="earliest", help="Offset reset direction")
-    consume_parser.add_argument("--partitions", type=str, help="Comma-separated partition list (e.g. 0,2)")
-    consume_parser.add_argument("--persist-to", default="storage/orders.jsonl", help="File to persist valid orders")
-    consume_parser.add_argument("--filter", type=str, help="Filter by user (e.g. user=alice)")
-    consume_parser.add_argument("--summary", action="store_true", help="Show summary report")
+    consume_parser.add_argument(
+        "--group", default=config.GROUP_ID, help="Kafka consumer group ID"
+    )
+    consume_parser.add_argument(
+        "--dry-run", action="store_true", help="Don't write to file"
+    )
+    consume_parser.add_argument(
+        "--reset", action="store_true", help="Reset offsets before consuming"
+    )
+    consume_parser.add_argument(
+        "--reset-to",
+        choices=["earliest", "latest"],
+        default="earliest",
+        help="Offset reset direction",
+    )
+    consume_parser.add_argument(
+        "--partitions", type=str, help="Comma-separated partition list (e.g. 0,2)"
+    )
+    consume_parser.add_argument(
+        "--persist-to",
+        default="storage/orders.jsonl",
+        help="File to persist valid orders",
+    )
+    consume_parser.add_argument(
+        "--filter", type=str, help="Filter by user (e.g. user=alice)"
+    )
+    consume_parser.add_argument(
+        "--summary", action="store_true", help="Show summary report"
+    )
 
     args = parser.parse_args()
 
@@ -135,7 +170,9 @@ def main():
                 raise ValueError("Only '--filter user=<name>' is supported.")
             filter_user = val
 
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+        logging.basicConfig(
+            level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
+        )
         consume(
             group_id=args.group,
             dry_run=args.dry_run,

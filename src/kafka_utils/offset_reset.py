@@ -13,8 +13,7 @@ def list_partitions(admin: AdminClient, topic: str) -> list[TopicPartition]:
     if topic not in metadata.topics:
         raise ValueError(f"❌ Topic '{topic}' does not exist.")
     return [
-        TopicPartition(topic, p.id)
-        for p in metadata.topics[topic].partitions.values()
+        TopicPartition(topic, p.id) for p in metadata.topics[topic].partitions.values()
     ]
 
 
@@ -23,7 +22,7 @@ def reset_offsets(
     topic: str,
     bootstrap_servers: str,
     reset_to: str = "earliest",
-    partitions: list[int] = None
+    partitions: list[int] = None,
 ):
     """
     Reset consumer group offsets to 'earliest' or 'latest' by committing specified offsets
@@ -50,18 +49,24 @@ def reset_offsets(
     consumer_conf = {
         "bootstrap.servers": bootstrap_servers,
         "group.id": group_id,
-        "enable.auto.commit": False
+        "enable.auto.commit": False,
     }
     consumer = Consumer(consumer_conf)
     offsets_to_commit = []
     for tp in target_partitions:
-        low, high = consumer.get_watermark_offsets(TopicPartition(tp.topic, tp.partition), timeout=10)
+        low, high = consumer.get_watermark_offsets(
+            TopicPartition(tp.topic, tp.partition), timeout=10
+        )
         desired_offset = low if reset_to == "earliest" else high
-        logging.info(f"🔁 Partition {tp.partition}: resetting offset to {desired_offset}")
+        logging.info(
+            f"🔁 Partition {tp.partition}: resetting offset to {desired_offset}"
+        )
         offsets_to_commit.append(TopicPartition(tp.topic, tp.partition, desired_offset))
     try:
         consumer.commit(offsets=offsets_to_commit, asynchronous=False)
-        logging.info(f"✅ Offsets for group '{group_id}' on topic '{topic}' successfully reset")
+        logging.info(
+            f"✅ Offsets for group '{group_id}' on topic '{topic}' successfully reset"
+        )
     except Exception as e:
         logging.warning(f"⚠️ Failed to commit offsets: {e}")
     finally:
